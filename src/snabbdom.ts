@@ -248,7 +248,9 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                 if (isDef(ch.sel)) {
                     invokeDestroyHook(ch);
                     listeners = cbs.remove.length + 1;
+                    // 所有监听删除
                     rm = createRmCb(ch.elm as Node, listeners);
+                    // 如果有钩子则调用钩子后再掉删除回调，如果没，则直接调用回调
                     for (i = 0; i < cbs.remove.length; ++i)
                         cbs.remove[i](ch, rm);
                     if (
@@ -268,6 +270,9 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
         }
     }
 
+    /**
+     * 更新子节点
+     */
     function updateChildren(
         parentElm: Node,
         oldCh: Array<VNode>,
@@ -276,12 +281,17 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
     ) {
         let oldStartIdx = 0,
             newStartIdx = 0;
+
         let oldEndIdx = oldCh.length - 1;
+
         let oldStartVnode = oldCh[0];
         let oldEndVnode = oldCh[oldEndIdx];
+
         let newEndIdx = newCh.length - 1;
+
         let newStartVnode = newCh[0];
         let newEndVnode = newCh[newEndIdx];
+
         let oldKeyToIdx: any;
         let idxInOld: number;
         let elmToMove: VNode;
@@ -289,23 +299,31 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
 
         while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
             if (oldStartVnode == null) {
+                // 移动索引，因为节点处理过了会置空，所以这里向右移
                 oldStartVnode = oldCh[++oldStartIdx]; // Vnode might have been moved left
             } else if (oldEndVnode == null) {
+                // 原理同上
                 oldEndVnode = oldCh[--oldEndIdx];
             } else if (newStartVnode == null) {
+                // 原理同上
                 newStartVnode = newCh[++newStartIdx];
             } else if (newEndVnode == null) {
+                // 原理同上
                 newEndVnode = newCh[--newEndIdx];
+
             } else if (sameVnode(oldStartVnode, newStartVnode)) {
+                // 从左对比
                 patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue);
                 oldStartVnode = oldCh[++oldStartIdx];
                 newStartVnode = newCh[++newStartIdx];
             } else if (sameVnode(oldEndVnode, newEndVnode)) {
+                // 从右对比
                 patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue);
                 oldEndVnode = oldCh[--oldEndIdx];
                 newEndVnode = newCh[--newEndIdx];
             } else if (sameVnode(oldStartVnode, newEndVnode)) {
                 // Vnode moved right
+                // 最左侧 对比 最右侧
                 patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue);
                 api.insertBefore(
                     parentElm,
@@ -316,6 +334,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                 newEndVnode = newCh[--newEndIdx];
             } else if (sameVnode(oldEndVnode, newStartVnode)) {
                 // Vnode moved left
+                // 最右侧对比最左侧
                 patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue);
                 api.insertBefore(
                     parentElm,
@@ -325,6 +344,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                 oldEndVnode = oldCh[--oldEndIdx];
                 newStartVnode = newCh[++newStartIdx];
             } else {
+                // 首尾都不一样的情况，寻找相同 key 的节点，所以使用的时候加上key可以调高效率
                 if (oldKeyToIdx === undefined) {
                     oldKeyToIdx = createKeyToOldIdx(
                         oldCh,
@@ -333,8 +353,10 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                     );
                 }
                 idxInOld = oldKeyToIdx[newStartVnode.key as string];
+
                 if (isUndef(idxInOld)) {
                     // New element
+                    // 如果找不到 key 对应的元素，就新建元素
                     api.insertBefore(
                         parentElm,
                         createElm(newStartVnode, insertedVnodeQueue),
@@ -342,6 +364,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                     );
                     newStartVnode = newCh[++newStartIdx];
                 } else {
+                    // 如果找到 key 对应的元素，就移动元素
                     elmToMove = oldCh[idxInOld];
                     if (elmToMove.sel !== newStartVnode.sel) {
                         api.insertBefore(
@@ -366,8 +389,10 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                 }
             }
         }
+        // 新老数组其中一个到达末尾
         if (oldStartIdx <= oldEndIdx || newStartIdx <= newEndIdx) {
             if (oldStartIdx > oldEndIdx) {
+                // 如果老数组先到达末尾，说明新数组还有更多的元素，这些元素都是新增的，说以一次性插入
                 before =
                     newCh[newEndIdx + 1] == null
                         ? null
@@ -381,6 +406,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                     insertedVnodeQueue
                 );
             } else {
+                // 如果新数组先到达末尾，说明新数组比老数组少了一些元素，所以一次性删除
                 removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx);
             }
         }
