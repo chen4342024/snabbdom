@@ -1,6 +1,7 @@
 import {VNode, VNodeData} from './vnode';
 import {h} from './h';
 
+// 分块数据
 export interface ThunkData extends VNodeData {
   fn: () => VNode;
   args: Array<any>;
@@ -15,6 +16,7 @@ export interface ThunkFn {
   (sel: string, key: any, fn: Function, args: Array<any>): Thunk;
 }
 
+
 function copyToThunk(vnode: VNode, thunk: VNode): void {
   thunk.elm = vnode.elm;
   (vnode.data as VNodeData).fn = (thunk.data as VNodeData).fn;
@@ -25,12 +27,16 @@ function copyToThunk(vnode: VNode, thunk: VNode): void {
   thunk.elm = vnode.elm;
 }
 
+
 function init(thunk: VNode): void {
   const cur = thunk.data as VNodeData;
   const vnode = (cur.fn as any).apply(undefined, cur.args);
   copyToThunk(vnode, thunk);
 }
 
+/**
+ *
+ */
 function prepatch(oldVnode: VNode, thunk: VNode): void {
   let i: number, old = oldVnode.data as VNodeData, cur = thunk.data as VNodeData;
   const oldArgs = old.args, args = cur.args;

@@ -62,6 +62,7 @@ function pre() {
   created = [];
 }
 
+
 function create(oldVnode: VNode, vnode: VNode): void {
   var hero = (vnode.data as VNodeData).hero;
   if (hero && hero.id) {

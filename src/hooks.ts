@@ -11,6 +11,7 @@ export type DestroyHook = (vNode: VNode) => any;
 export type RemoveHook = (vNode: VNode, removeCallback: () => void) => any;
 export type PostHook = () => any;
 
+// 钩子
 export interface Hooks {
   pre?: PreHook;
   init?: InitHook;
