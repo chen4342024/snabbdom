@@ -28,7 +28,7 @@ function addNS(
 }
 
 /**
- * 根据选择器 ，数据 ，
+ * 根据选择器 ，数据 ，创建 vnode
  */
 export function h(sel: string): VNode;
 export function h(sel: string, data: VNodeData): VNode;

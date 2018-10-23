@@ -127,21 +127,29 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
     function createElm(vnode: VNode, insertedVnodeQueue: VNodeQueue): Node {
         let i: any,
             data = vnode.data;
+
         if (data !== undefined) {
+            // 如果存在 data.hook.init ，则调用该钩子
             if (isDef((i = data.hook)) && isDef((i = i.init))) {
                 i(vnode);
                 data = vnode.data;
             }
         }
+
+
         let children = vnode.children,
             sel = vnode.sel;
+
+        // ！ 来代表注释
         if (sel === '!') {
             if (isUndef(vnode.text)) {
                 vnode.text = '';
             }
             vnode.elm = api.createComment(vnode.text as string);
+
         } else if (sel !== undefined) {
             // Parse selector
+            // 解析选择器
             const hashIdx = sel.indexOf('#');
             const dotIdx = sel.indexOf('.', hashIdx);
             const hash = hashIdx > 0 ? hashIdx : sel.length;
@@ -150,18 +158,28 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                 hashIdx !== -1 || dotIdx !== -1
                     ? sel.slice(0, Math.min(hash, dot))
                     : sel;
+
+            // 根据 tag 创建元素
             const elm = (vnode.elm =
                 isDef(data) && isDef((i = (data as VNodeData).ns))
                     ? api.createElementNS(i, tag)
                     : api.createElement(tag));
+
+            // 设置 id
             if (hash < dot) elm.setAttribute('id', sel.slice(hash + 1, dot));
+
+            // 设置 className
             if (dotIdx > 0)
                 elm.setAttribute(
                     'class',
                     sel.slice(dot + 1).replace(/\./g, ' ')
                 );
+
+            // 执行所有模块的 create 钩子，创建对应的内容
             for (i = 0; i < cbs.create.length; ++i)
                 cbs.create[i](emptyNode, vnode);
+
+            // 如果存在 children ，则创建children
             if (is.array(children)) {
                 for (i = 0; i < children.length; ++i) {
                     const ch = children[i];
@@ -173,14 +191,18 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                     }
                 }
             } else if (is.primitive(vnode.text)) {
+                // 追加文本节点
                 api.appendChild(elm, api.createTextNode(vnode.text));
             }
+
+            // 执行 vnode.data.hook 中的 create 钩子
             i = (vnode.data as VNodeData).hook; // Reuse variable
             if (isDef(i)) {
                 if (i.create) i.create(emptyNode, vnode);
                 if (i.insert) insertedVnodeQueue.push(vnode);
             }
         } else {
+            // sel 不存在的情况， 即为文本节点
             vnode.elm = api.createTextNode(vnode.text as string);
         }
         return vnode.elm;
@@ -251,11 +273,11 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                     // 所有监听删除
                     rm = createRmCb(ch.elm as Node, listeners);
 
-                    // 如果有钩子则调用钩子后再掉删除回调，如果没，则直接调用回调
+
                     for (i = 0; i < cbs.remove.length; ++i)
                         cbs.remove[i](ch, rm);
 
-
+                    // 如果有钩子则调用钩子后再调删除回调，如果没，则直接调用回调
                     if (
                         isDef((i = ch.data)) &&
                         isDef((i = i.hook)) &&
@@ -432,12 +454,12 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
             i(oldVnode, vnode);
         }
 
-        // 调用 cbs 中的回调
         const elm = (vnode.elm = oldVnode.elm as Node);
         let oldCh = oldVnode.children;
         let ch = vnode.children;
         if (oldVnode === vnode) return;
 
+        // 调用 cbs 中的所有模块的update回调 更新对应的实际内容。
         if (vnode.data !== undefined) {
             for (i = 0; i < cbs.update.length; ++i)
                 cbs.update[i](oldVnode, vnode);
@@ -476,7 +498,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
                     (oldCh as Array<VNode>).length - 1
                 );
             } else if (isDef(oldVnode.text)) {
-                // 如果老节点存在文本节点，新节点不存在，所以清空
+                // 如果老节点存在文本节点，而新节点不存在，所以清空
                 api.setTextContent(elm, '');
             }
         } else if (oldVnode.text !== vnode.text) {
@@ -495,6 +517,8 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
      */
     return function patch(oldVnode: VNode | Element, vnode: VNode): VNode {
         let i: number, elm: Node, parent: Node;
+
+        // 用于收集所有插入的元素
         const insertedVnodeQueue: VNodeQueue = [];
 
         // 先调用 pre 回调
@@ -527,7 +551,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
             }
         }
 
-        // 调用插入的钩子
+        // 遍历所有收集到的插入节点，调用插入的钩子，
         for (i = 0; i < insertedVnodeQueue.length; ++i) {
             (((insertedVnodeQueue[i].data as VNodeData).hook as Hooks)
                 .insert as any)(insertedVnodeQueue[i]);
